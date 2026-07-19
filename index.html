@@ -29,6 +29,7 @@
     </style>
 </head>
 <body>
+    <audio id="spin-audio" src="spin_sound.mp3" loop></audio>
 
     <div class="header-text" id="header-text">FIRST TO 50 WINS</div>
 
@@ -53,12 +54,12 @@
         // CONFIGURATION SECTION (Changing place)
         // ==========================================================
         const config = {
-            player1Name: "YAMAL",           // Change Name
-            player2Name: "MESSI",           // Change Name
-            player1Image: "yamal_style.jpg",// Change Filename
-            player2Image: "messi_style.jpg",// Change Filename
-            winningScore: 40,               // Change Goal Score
-            spinDuration: 30                // Change Spin Time (seconds)
+            player1Name: "YAMAL",           
+            player2Name: "MESSI",           
+            player1Image: "yamal_style.jpg",
+            player2Image: "messi_style.jpg",
+            winningScore: 50,               
+            spinDuration: 30                
         };
         // ==========================================================
 
@@ -67,23 +68,44 @@
         document.getElementById('p1-img').src = config.player1Image;
         document.getElementById('p2-img').src = config.player2Image;
         document.getElementById('header-text').innerText = `FIRST TO ${config.winningScore} WINS`;
-        document.getElementById('wheel').style.transition = `transform ${config.spinDuration}s cubic-bezier(0.1, 0, 0, 1)`;
+        
+        const wheel = document.getElementById('wheel');
+        const spinAudio = document.getElementById('spin-audio');
+        wheel.style.transition = `transform ${config.spinDuration}s cubic-bezier(0.1, 0, 0, 1)`;
 
         let scores = { p1: 0, p2: 0 };
-        let rotation = 0;
+        let currentRotation = 0;
 
         function spinWheel() {
-            rotation += 3600 + Math.floor(Math.random() * 360);
-            document.getElementById('wheel').style.transform = `rotate(${rotation}deg)`;
+            // Calculate random rotation
+            currentRotation += 3600 + Math.floor(Math.random() * 360);
+            wheel.style.transform = `rotate(${currentRotation}deg)`;
+
+            // Audio Logic: Play and Fade
+            spinAudio.volume = 1.0;
+            spinAudio.currentTime = 0;
+            spinAudio.play();
+
+            const fadeTime = (config.spinDuration * 1000) - 2000;
+            setTimeout(() => {
+                let fadeInterval = setInterval(() => {
+                    if (spinAudio.volume > 0.05) {
+                        spinAudio.volume -= 0.05;
+                    } else {
+                        spinAudio.pause();
+                        clearInterval(fadeInterval);
+                    }
+                }, 100);
+            }, fadeTime);
         }
 
         function updateScore(player) {
             scores[player]++;
             document.getElementById(`${player}-score`).innerText = scores[player];
+            
             window.speechSynthesis.cancel();
             const u = new SpeechSynthesisUtterance(`${config.player1Name} ${scores.p1}, ${config.player2Name} ${scores.p2}`);
-            const voices = window.speechSynthesis.getVoices();
-            u.voice = voices.find(v => v.name.includes("Google US English") || v.name.includes("Samantha")) || voices[0];
+            u.voice = window.speechSynthesis.getVoices().find(v => v.name.includes("Google US English")) || window.speechSynthesis.getVoices()[0];
             window.speechSynthesis.speak(u);
 
             if (scores[player] === config.winningScore) {
